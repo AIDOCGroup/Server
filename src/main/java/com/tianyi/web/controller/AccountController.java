@@ -51,6 +51,36 @@ public class AccountController {
     @Resource
     CountryService countryService;
 
+
+    //@AuthRequired
+    @RequestMapping(value = "/account/peach", method = RequestMethod.GET)
+    public Map<String, Object> registerPeach() throws Exception {
+
+        List<String> ls = new ArrayList<>();
+
+        ls.add("13520115728");
+
+        for (String s : ls) {
+
+            try {
+
+                String phone = s;
+                String password = s.substring(s.length() - 6);
+
+                User user = userService.register(phone, password, "zh", 86);
+                UserSession userSession = userService.createUserSession(user.getId());
+                Map<String, Object> result = new HashMap<>();
+                result.put("token", userSession.getToken());
+                result.put("temp_mob_password", password);
+
+            } catch (Exception ex) {
+                continue;
+            }
+        }
+        return null;
+    }
+
+
     @RequestMapping(value = "/account/register", method = RequestMethod.POST)
     public Map<String, Object> register(@JsonPathArg("password") String password,
                                         @JsonPathArg("phone") String phone,
@@ -59,18 +89,20 @@ public class AccountController {
                                         @Value("#{request.getAttribute('lang')}") String lang,
                                         HttpServletRequest request) throws Exception {
         if (StringUtils.isBlank(password)) {
-            throw new RuntimeException(i18nService.getMessage("" + 101,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 101, lang));
         }
         if (StringUtils.isBlank(phone)) {
-            throw new RuntimeException(i18nService.getMessage("" + 102,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 102, lang));
         }
-        if (countryCode ==null) {
-            throw new RuntimeException(i18nService.getMessage("" + 116,lang));
+        if (countryCode == null) {
+            throw new RuntimeException(i18nService.getMessage("" + 116, lang));
         }
 
-        if (!userService.validateVerificationCode(countryCode,phone, phoneVerifyCode,lang) && "true" .equals(isOpenCms)) {
-            throw new RuntimeException(i18nService.getMessage("" + 103,lang));
+        if (!userService.validateVerificationCode(countryCode, phone, phoneVerifyCode, lang) && "true".equals(isOpenCms)) {
+            throw new RuntimeException(i18nService.getMessage("" + 103, lang));
         }
+
+
 //        HttpSession httpSession = request.getSession();
 //        Object code = httpSession.getAttribute("_CAPTCHA");
 //        if (code == null || !code.toString().equalsIgnoreCase(picVerifyCode)) {
@@ -78,7 +110,7 @@ public class AccountController {
 //        }
 
 
-        User user = userService.register(phone, password,lang,countryCode);
+        User user = userService.register(phone, password, lang, countryCode);
         UserSession userSession = userService.createUserSession(user.getId());
         Map<String, Object> result = new HashMap<>();
         result.put("token", userSession.getToken());
@@ -91,31 +123,31 @@ public class AccountController {
                              @JsonPathArg("password") String password,
                              @RequestHeader("X-Client") String from,
                              @Value("#{request.getAttribute('lang')}") String lang,
-                             @JsonPathArg(value = "country_code",optional = true) Integer countryCode,
+                             @JsonPathArg(value = "country_code", optional = true) Integer countryCode,
                              HttpServletRequest request) {
 
         if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
-            throw new RuntimeException(i18nService.getMessage("" + 104,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 104, lang));
         }
 
-        if(ClientEunm.ADMIN.name().equals(from)){
+        if (ClientEunm.ADMIN.name().equals(from)) {
             countryCode = 86;
         }
 
-        if (countryCode ==null ) {
-            throw new RuntimeException(i18nService.getMessage("" + 116,lang));
+        if (countryCode == null) {
+            throw new RuntimeException(i18nService.getMessage("" + 116, lang));
         }
 
-        User user = userService.getUserByMobile(countryCode,username);
+        User user = userService.getUserByMobile(countryCode, username);
 
         if (user == null) {
-            throw new RuntimeException(i18nService.getMessage("" + 105,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 105, lang));
         }
         if (!user.getPasswordHash().equals(EncryptionUtil.SHA256(password))) {
-            throw new RuntimeException(i18nService.getMessage("" + 106,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 106, lang));
         }
         if (user.getUserStatus() == UserStatusEnum.INVALID) {
-            throw new RuntimeException(i18nService.getMessage("" + 107,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 107, lang));
         }
 
         user.setLonginIp(getIpAddr(request));
@@ -124,7 +156,7 @@ public class AccountController {
 
 
         UserSession userSession = userService.createUserSession(user.getId());
-        LoginResult loginResult = getLoginResultFrom(user);
+        LoginResult loginResult = getLoginResultFrom(user, from);
         loginResult.setToken(userSession.getToken());
         loginResult.setMsg_count(noticeService.getTotalNum(user.getId(), false, null));
 
@@ -139,12 +171,12 @@ public class AccountController {
 
     @AuthRequired
     @RequestMapping("/account/current")
-    public LoginResult current(@Value("#{request.getAttribute('currentUser')}") User currentUser) {
-       // System.out.println("-------------"+countryService.getAreaName(3021,LanguageEnum.zh));
-        return getLoginResultFrom(currentUser);
+    public LoginResult current(@Value("#{request.getAttribute('currentUser')}") User currentUser, @RequestHeader("X-Client") String from) {
+        // System.out.println("-------------"+countryService.getAreaName(3021,LanguageEnum.zh));
+        return getLoginResultFrom(currentUser, from);
     }
 
-    private LoginResult getLoginResultFrom(User user) {
+    private LoginResult getLoginResultFrom(User user, String from) {
         LoginResult loginResult = new LoginResult();
 
 
@@ -159,6 +191,7 @@ public class AccountController {
         loginResult.setRealname(user.getRealName());
         loginResult.setCity_id(user.getAreaId());
 
+
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(DateUtil.getCurrentDate());
         calendar.add(Calendar.DATE, -1);
@@ -172,8 +205,10 @@ public class AccountController {
         loginResult.setTotalAidoc(account == null ? 0 : Tools.getDecimalFour((Tools.toDoulbe(account.getBalance()) / 1000)));
 
 
-
-        loginResult.setCity_name(countryService.getAreaName(user.getAreaId(),LanguageEnum.values()[user.getUserLanguage()]));
+        loginResult.setCity_name(countryService.getAreaName(user.getAreaId(), LanguageEnum.values()[user.getUserLanguage()]));
+        if (from.toLowerCase().equals("ios")) {
+            loginResult.setCity_name("");
+        }
 
 
         UserData userData = userDataService.getUserDataByUserId(user.getId());
@@ -196,8 +231,6 @@ public class AccountController {
         if (userSession != null) {
             userService.deleteUserSession(userSession);
         }
-
-
         return new ActionResult();
     }
 
@@ -208,10 +241,10 @@ public class AccountController {
                                      @Value("#{request.getAttribute('lang')}") String lang,
                                      @Value("#{request.getAttribute('currentUser')}") User currentUser) {
         if (!currentUser.getPasswordHash().equals(EncryptionUtil.SHA256(oldPassword))) {
-            throw new RuntimeException(i18nService.getMessage("" + 108,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 108, lang));
         }
 
-        userService.changePassword(0,currentUser.getMobile(), newPassword, currentUser.getUserType());
+        userService.changePassword(0, currentUser.getMobile(), newPassword, currentUser.getUserType());
         return new ActionResult();
     }
 
@@ -225,11 +258,11 @@ public class AccountController {
                                     @JsonPathArg("phone_verify_code") String phone_verify_code,
                                     @Value("#{request.getAttribute('lang')}") String lang,
                                     @Value("#{request.getAttribute('currentUser')}") User currentUser) {
-        if (!userService.validateVerificationCode(newCountryCode,phone, phone_verify_code,lang) && "true" .equals(isOpenCms)) {
-            throw new RuntimeException(i18nService.getMessage("" + 103,lang));
+        if (!userService.validateVerificationCode(newCountryCode, phone, phone_verify_code, lang) && "true".equals(isOpenCms)) {
+            throw new RuntimeException(i18nService.getMessage("" + 103, lang));
         }
 
-        userService.changeAccount(oldCountryCode,newCountryCode,currentUser.getMobile(), phone, pssword, currentUser.getUserType());
+        userService.changeAccount(oldCountryCode, newCountryCode, currentUser.getMobile(), phone, pssword, currentUser.getUserType());
         return new ActionResult();
     }
 
@@ -240,15 +273,15 @@ public class AccountController {
                                       @JsonPathArg("phone_verify_code") String phone_verify_code,
                                       @Value("#{request.getAttribute('lang')}") String lang,
                                       @JsonPathArg("phone") String phone) {
-        User user = userService.getUserByMobile(countryCode,phone);
+        User user = userService.getUserByMobile(countryCode, phone);
         if (user == null) {
-            throw new UnauthorizedException(i18nService.getMessage("" + 109,lang));
+            throw new UnauthorizedException(i18nService.getMessage("" + 109, lang));
         }
 
-        if (!userService.validateVerificationCode(countryCode,phone, phone_verify_code,lang) && "true" .equals(isOpenCms)) {
-            throw new RuntimeException(i18nService.getMessage("" + 103,lang));
+        if (!userService.validateVerificationCode(countryCode, phone, phone_verify_code, lang) && "true".equals(isOpenCms)) {
+            throw new RuntimeException(i18nService.getMessage("" + 103, lang));
         }
-        userService.changePassword(countryCode,user.getMobile(), password, user.getUserType());
+        userService.changePassword(countryCode, user.getMobile(), password, user.getUserType());
         return new ActionResult();
     }
 
@@ -262,11 +295,11 @@ public class AccountController {
 
         //userService.changePassword(mobile, password);
         if (!currentUser.getPasswordHash().equals(EncryptionUtil.SHA256(String.valueOf(currentUser.getId()) + password))) {
-            throw new RuntimeException(i18nService.getMessage("" + 108,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 108, lang));
         }
-        User user = userService.getUserByMobile(countryCode,phone, currentUser.getUserType());
+        User user = userService.getUserByMobile(countryCode, phone, currentUser.getUserType());
         if (user != null) {
-            throw new RuntimeException(i18nService.getMessage("" + 110,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 110, lang));
         }
         currentUser.setMobile(phone);
         userService.updateUser(currentUser);
@@ -297,7 +330,7 @@ public class AccountController {
 //        if (code == null || !code.toString().equalsIgnoreCase(captcha)) {
 //            throw new RuntimeException("验证码错误");
 //        }
-        userService.sendVerificationCodeViaSMS(countryCode,mobile, type,lang);
+        userService.sendVerificationCodeViaSMS(countryCode, mobile, type, lang);
         return new ActionResult();
     }
 
@@ -307,12 +340,12 @@ public class AccountController {
                                                 @JsonPathArg("phone_verify_code") String phone_verify_code,
                                                 @Value("#{request.getAttribute('lang')}") String lang,
                                                 HttpServletRequest request) {
-        if (!userService.validateVerificationCode(countryCode,phone, phone_verify_code,lang) && "true" .equals(isOpenCms)) {
-            throw new RuntimeException(i18nService.getMessage("" + 103,lang));
+        if (!userService.validateVerificationCode(countryCode, phone, phone_verify_code, lang) && "true".equals(isOpenCms)) {
+            throw new RuntimeException(i18nService.getMessage("" + 103, lang));
         }
-        User user = userService.getUserByMobile(countryCode,phone);
+        User user = userService.getUserByMobile(countryCode, phone);
         if (user == null) {
-            throw new RuntimeException(i18nService.getMessage("" + 111,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 111, lang));
         }
         UserSession userSession = userService.createUserSession(user.getId());
 
@@ -328,7 +361,7 @@ public class AccountController {
                                       @Value("#{request.getAttribute('lang')}") String lang,
                                       @JsonPathArg("avatar") String avatarFile) {
         if (StringUtils.isBlank(avatarFile)) {
-            throw new RuntimeException(i18nService.getMessage("" + 112,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 112, lang));
         }
         currentUser.setAvatar(avatarFile);
         userService.updateUser(currentUser);
@@ -343,7 +376,7 @@ public class AccountController {
                                       @Value("#{request.getAttribute('lang')}") String lang,
                                       @JsonPathArg("nickname") String nickname) {
         if (StringUtils.isBlank(nickname)) {
-            throw new RuntimeException(i18nService.getMessage("" + 112,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 112, lang));
         }
         currentUser.setNickname(nickname);
         userService.updateUser(currentUser);
@@ -371,8 +404,21 @@ public class AccountController {
 
 
         if (StringUtils.isBlank(signature)) {
-            throw new RuntimeException(i18nService.getMessage("" + 112,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 112, lang));
         }
+        currentUser.setSignature(signature);
+        userService.updateUser(currentUser);
+
+        return new ActionResult();
+    }
+
+
+    @RequestMapping(value = "/account/test", method = RequestMethod.PUT)
+    public ActionResult editSign(@JsonPathArg("signature") String signature) {
+
+
+       User currentUser =userService.getUserByMobile(86,"18610339095");
+
         currentUser.setSignature(signature);
         userService.updateUser(currentUser);
 
@@ -391,14 +437,14 @@ public class AccountController {
         List<AdminUserModel> result = new ArrayList<>();
         for (User user : users) {
             UserData userData = userDataService.getUserDataByUserId(user.getId());
-            result.add(getAdminUserModel(user,userData));
+            result.add(getAdminUserModel(user, userData));
         }
         return new PagedListModel(result, total, page, pageSize);
     }
 
     @AuthRequired
     @RequestMapping(value = "/admin/administrators", method = RequestMethod.POST)
-    public AdminUserModel addUserAdministrators(@JsonPathArg(value = "country_code",optional = true) Integer countryCode,
+    public AdminUserModel addUserAdministrators(@JsonPathArg(value = "country_code", optional = true) Integer countryCode,
                                                 @JsonPathArg("user_name") String username,
                                                 @JsonPathArg("phone_number") String phone_number,
                                                 @JsonPathArg("real_name") String realName,
@@ -406,17 +452,17 @@ public class AccountController {
                                                 @Value("#{request.getAttribute('lang')}") String lang,
                                                 @Value("#{request.getAttribute('currentUser')}") User currentUser) {
 
-        if(countryCode ==null){
+        if (countryCode == null) {
             countryCode = 86;
         }
 
-        User user = userService.addUser(countryCode,phone_number, username, password, UserType.ADMIN, realName);
+        User user = userService.addUser(countryCode, phone_number, username, password, UserType.ADMIN, realName);
         if (user == null) {
-            throw new RuntimeException(i18nService.getMessage("" + 111,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 111, lang));
         }
 
         UserData userData = userDataService.getUserDataByUserId(user.getId());
-        return getAdminUserModel(user,userData);
+        return getAdminUserModel(user, userData);
     }
 
     @AuthRequired
@@ -424,7 +470,7 @@ public class AccountController {
     public AdminUserModel getUserAdministratorsById(@PathVariable("id") long userId) {
         User user = userService.getUserByUserId(userId);
         UserData userData = userDataService.getUserDataByUserId(user.getId());
-        return getAdminUserModel(user,userData);
+        return getAdminUserModel(user, userData);
     }
 
     @AuthRequired
@@ -436,12 +482,12 @@ public class AccountController {
                                                    @JsonPathArg("phone_number") String phone_number,
                                                    @JsonPathArg("password") String password,
                                                    @Value("#{request.getAttribute('currentUser')}") User currentUser) {
-        if(countryCode == null){
+        if (countryCode == null) {
             countryCode = 86;
         }
-        User user = userService.updateUser(userId,countryCode, phone_number, username, password, UserType.ADMIN);
+        User user = userService.updateUser(userId, countryCode, phone_number, username, password, UserType.ADMIN);
         UserData userData = userDataService.getUserDataByUserId(user.getId());
-        return getAdminUserModel(user,userData);
+        return getAdminUserModel(user, userData);
     }
 
     @AuthRequired
@@ -464,7 +510,7 @@ public class AccountController {
     @RequestMapping(value = "/admin/users/{user_id}", method = RequestMethod.GET)
     public UserCommonModel getAdminUserCommonById(@PathVariable("user_id") long userId) {
         User user = userService.getUserByUserId(userId);
-     //   Map<Integer, Area> allAreaMap = areaService.getAreaMapFromAllArea();
+        //   Map<Integer, Area> allAreaMap = areaService.getAreaMapFromAllArea();
         UserCommonModel userCommonModel = new UserCommonModel();
 
         userCommonModel.setUser_id(user.getId());
@@ -475,7 +521,7 @@ public class AccountController {
         userCommonModel.setName(user.getRealName());
         userCommonModel.setAddress(user.getAddress());
         userCommonModel.setCreated(DateUtil.formatTime(user.getCreatedOn()));
-        userCommonModel.setCity_name(countryService.getAreaName(user.getAreaId(),LanguageEnum.values()[user.getUserLanguage()]));
+        userCommonModel.setCity_name(countryService.getAreaName(user.getAreaId(), LanguageEnum.values()[user.getUserLanguage()]));
         userCommonModel.setStatus(user.getUserStatus().ordinal());
         userCommonModel.setSignature(user.getSignature());
 
@@ -512,7 +558,7 @@ public class AccountController {
         List<AdminUserModel> result = new ArrayList<>();
         for (User user : users) {
             UserData userData = userDataService.getUserDataByUserId(user.getId());
-            result.add(getAdminUserModel(user,userData));
+            result.add(getAdminUserModel(user, userData));
         }
         return new PagedListModel(result, total, page, pageSize);
     }
@@ -539,7 +585,7 @@ public class AccountController {
                                         @Value("#{request.getAttribute('currentUser')}") User currentUser) {
         User user = userService.getUserByUserId(userId);
         if (user == null) {
-            throw new RuntimeException(i18nService.getMessage("" + 111,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 111, lang));
         }
 //        user.setUserStatus(UserStatusEnum.values()[state]);
 //        user.setInvestorGroupId(groupId);
@@ -571,7 +617,7 @@ public class AccountController {
                                                    @Value("#{request.getAttribute('currentUser')}") User currentUser) {
         User user = userService.getUserByUserId(userId);
         if (user == null) {
-            throw new RuntimeException(i18nService.getMessage("" + 111,lang));
+            throw new RuntimeException(i18nService.getMessage("" + 111, lang));
         }
         UserStatusEnum userStatusEnum = null;
         if (user.getUserStatus() == UserStatusEnum.INVALID || user.getUserStatus() == UserStatusEnum.EFFECTIVE) {
@@ -598,51 +644,43 @@ public class AccountController {
     }
 
 
-
     /**
      * 获得国家简码
      */
     @RequestMapping(value = "/account/conutry_code", method = RequestMethod.GET)
     public PagedListModel<List<Map<String, Object>>> getCountryCodes(@RequestParam(value = "p", required = false) Integer page,
-                                                                   @RequestParam(value = "p_size", required = false) Integer pageSize,
+                                                                     @RequestParam(value = "p_size", required = false) Integer pageSize,
                                                                      @Value("#{request.getAttribute('lang')}") String lang
-                                                                   ) {
+    ) {
         page = page == null ? 1 : page;
         pageSize = pageSize == null ? 20 : pageSize;
 
-        List<CountryCode> countryCodes = countryService.getCountryCodes(page,pageSize);
+        List<CountryCode> countryCodes = countryService.getCountryCodes(page, pageSize);
         List<Map<String, Object>> result = new ArrayList<>();
         for (CountryCode countryCode : countryCodes) {
-            Map<String,Object> map = new HashMap<>();
-            if(LanguageEnum.en.name().equals(lang)){
-                map.put("name",countryCode.getCountryEn());
-            }else {
-                map.put("name",countryCode.getCountryCn());
+            Map<String, Object> map = new HashMap<>();
+            if (LanguageEnum.en.name().equals(lang)) {
+                map.put("name", countryCode.getCountryEn());
+            } else {
+                map.put("name", countryCode.getCountryCn());
             }
-            map.put("code",countryCode.getCountryCode());
+            map.put("code", countryCode.getCountryCode());
             result.add(map);
         }
         return new PagedListModel(result, 214, page, pageSize);
     }
 
 
-
-
-
-
-
-
-
     //获得客户端真实IP地址的方法二：
     private String getIpAddr(HttpServletRequest request) {
         String ip = request.getHeader("x-forwarded-for");
-        if (ip == null || ip.length() == 0 || "unknown" .equalsIgnoreCase(ip)) {
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");
         }
-        if (ip == null || ip.length() == 0 || "unknown" .equalsIgnoreCase(ip)) {
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("WL-Proxy-Client-IP");
         }
-        if (ip == null || ip.length() == 0 || "unknown" .equalsIgnoreCase(ip)) {
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
         return ip;
@@ -669,7 +707,7 @@ public class AccountController {
 
 
     private int getAgeByBirth(Date birthday) {
-        if(birthday ==null){
+        if (birthday == null) {
             return 0;
         }
 

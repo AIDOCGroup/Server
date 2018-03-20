@@ -89,6 +89,12 @@ public class AidocSetController {
         return map;
     }
 
-
+    @AuthRequired
+    @ResponseBody
+    @RequestMapping(value = "/getStepAidocInfo", method = RequestMethod.GET)
+    public Map getStepAidocInfo(@RequestParam(value = "time",required = false) String time,
+                                @RequestParam(value = "page") Integer page,@RequestParam(value = "size") Integer size){
+        return aidocSetService.getUserStepAidoc(time,page,size);
+    }
 
 }
