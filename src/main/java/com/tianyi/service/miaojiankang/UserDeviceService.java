@@ -36,6 +36,14 @@ public class UserDeviceService {
         return userDevice;
     }
 
+    public UserDevice getUserDeviceByDeviceId(String deviceUuid,long userId){
+
+        return userDeviceDao.getUserDeviceByDeviceId(deviceUuid,userId);
+    }
+
+
+
+
 
 
 
