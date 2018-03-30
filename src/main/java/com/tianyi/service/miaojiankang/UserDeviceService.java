@@ -36,9 +36,18 @@ public class UserDeviceService {
         return userDevice;
     }
 
-    public UserDevice getUserDeviceByDeviceId(String deviceUuid,long userId){
+    public UserDevice getUserDeviceByDeviceId(String deviceId,long userId){
 
-        return userDeviceDao.getUserDeviceByDeviceId(deviceUuid,userId);
+        return userDeviceDao.getUserDeviceByDeviceId(deviceId,userId);
+    }
+
+    public List<UserDevice> getUserDeviceAll(long userId){
+
+        return userDeviceDao.getUserDeviceAll(userId);
+    }
+
+    public List<UserDevice> getUserDeviceByTypeId(long userId,String typeId){
+        return userDeviceDao.getUserDeviceByTypeId(userId,typeId);
     }
 
 

@@ -41,6 +41,9 @@ public class UserDeviceDataController {
     @Resource
     UserDeviceDataService userDeviceDataService;
 
+    private static String WATCH="10096";
+    private static String BRACELET="10097";
+
 
     /***
      * 保存设备数据
@@ -107,7 +110,7 @@ public class UserDeviceDataController {
                                    @Value("#{request.getAttribute('currentUser')}") User currentUser) throws IOException {
 
 
-        UserDevice target = userDeviceService.getUserDeviceByDeviceId(uuid, currentUser.getId());
+        UserDevice target = userDeviceService.getUserDeviceByDeviceId(deviceId, currentUser.getId());
         if (target != null) {
             Map<String, String> result = new HashedMap();
             result.put("msg", "ok");
@@ -144,7 +147,7 @@ public class UserDeviceDataController {
 
 
     /****
-     * 获取我的设备来源
+     * 获取我的数据来源
      * @param currentUser
      * @param from
      * @return
@@ -153,7 +156,54 @@ public class UserDeviceDataController {
     @AuthRequired
     @RequestMapping(value = {"device", "api/device"}, method = RequestMethod.GET)
     public Object getDevice(@Value("#{request.getAttribute('currentUser')}") User currentUser,
+                            @RequestParam(value = "typeId", required = false) String typeid,
                             @RequestHeader("X-Client") String from) throws IOException {
+
+        List<UserDevice> userDevices = new ArrayList<>();
+
+        // 默认数据来源
+        UserDevice device = new UserDevice();
+        device.setStatus(1);
+        if ("ios".equals(from.toLowerCase())) {
+            device.setDeviceName("IPhone");
+        } else {
+            device.setDeviceName("Android");
+        }
+        device.setCreatedOn(currentUser.getCreatedOn());
+        device.setDeviceId(from + "-" + currentUser.getId());
+        device.setUserId(currentUser.getId());
+        userDevices.add(device);
+
+        // 如果没有默认设备，手机就时默认设备
+        List<UserDevice> targetList = new ArrayList<>();
+        if (typeid.equals(WATCH) || typeid.equals(BRACELET)) {
+            targetList = userDeviceService.getUserDevice(currentUser.getId());
+        } else {
+            targetList = userDeviceService.getUserDeviceByTypeId(currentUser.getId(), typeid);
+        }
+
+        for (UserDevice target : targetList) {
+            if (target.getStatus() == 1) {
+                device.setStatus(0);
+            }
+        }
+        for (UserDevice target : targetList) {
+            userDevices.add(target);
+        }
+        return userDevices;
+    }
+
+    /****
+     * 获取我的数据来源
+     * @param currentUser
+     * @param from
+     * @return
+     * @throws IOException
+     */
+    @AuthRequired
+    @RequestMapping(value = {"device/all", "api/device/all"}, method = RequestMethod.GET)
+    public Object getDeviceAll(@Value("#{request.getAttribute('currentUser')}") User currentUser,
+                               @RequestHeader("X-Client") String from) throws IOException {
 
         List<UserDevice> userDevices = new ArrayList<>();
 
@@ -170,7 +220,7 @@ public class UserDeviceDataController {
         userDevices.add(device);
 
         // 如果没有默认设备，手机就时默认设备
-        List<UserDevice> targetList = userDeviceService.getUserDevice(currentUser.getId());
+        List<UserDevice> targetList = userDeviceService.getUserDeviceAll(currentUser.getId());
         for (UserDevice target : targetList) {
             if (target.getStatus() == 1) {
                 device.setStatus(0);
@@ -195,22 +245,42 @@ public class UserDeviceDataController {
     @RequestMapping(value = {"device/default", "api/device/default"}, method = RequestMethod.POST)
     public Object setDefaultDevice(@JsonPathArg("deviceId") String deviceId, @Value("#{request.getAttribute('currentUser')}") User currentUser, @RequestHeader("X-Client") String from) throws IOException {
 
-        List<UserDevice> targetList = userDeviceService.getUserDevice(currentUser.getId());
 
-        for (UserDevice target : targetList) {
-            if (target.getDeviceId().equals(deviceId)) {
-                if (target.getStatus() == 0) {
-                    target.setStatus(1);
-                    return userDeviceService.updateDevice(target);
-                }
-            } else {
-                if (target.getStatus() == 1) {
+        long userId =currentUser.getId();
+
+        List<UserDevice> targetList = userDeviceService.getUserDeviceAll(userId);
+
+        UserDevice device = userDeviceService.getUserDeviceByDeviceId(deviceId, userId);
+
+        // device ==null 手机访问
+        if (device == null) {
+            for (UserDevice target : targetList) {
+                // 4,7 步数数据源切换的设备
+                if ((target.getStatus() == 1 && target.getTid().equals(WATCH)) ||
+                        (target.getStatus() == 1 && target.getTid().equals(BRACELET))) {
                     target.setStatus(0);
                     return userDeviceService.updateDevice(target);
                 }
             }
-        }
+        } else {
 
+            // 设备id 存在设备，并且是同类型设备
+            for (UserDevice target : targetList) {
+
+                // 同类型默认设备
+                if (target.getDeviceId().equals(deviceId) && device.getTid().equals(target.getTid())) {
+                    target.setStatus(1);
+                    userDeviceService.updateDevice(target);
+
+                }
+
+                // 同类非默认设备
+                if(!target.getDeviceId().equals(deviceId) && device.getTid().equals(target.getTid())){
+                    target.setStatus(0);
+                    userDeviceService.updateDevice(target);
+                }
+            }
+        }
         return new UserDevice();
     }
 
@@ -229,7 +299,7 @@ public class UserDeviceDataController {
 
         Map<String, Object> result = new HashedMap();
 
-        List<UserDevice> targetList = userDeviceService.getUserDevice(currentUser.getId());
+        List<UserDevice> targetList = userDeviceService.getUserDeviceAll(currentUser.getId());
         for (UserDevice target : targetList) {
             if (target.getUuid().equals(uuid)) {
                 target.setStatus(2);
@@ -252,6 +322,12 @@ public class UserDeviceDataController {
                                            @RequestParam(value = "page", required = true) Integer page,
                                            @RequestParam(value = "pageSize", required = true) Integer pageSize) {
 
+        // 处理分页
+        if (page <= 1) {
+            page = 1;
+        }
+        long userId=currentUser.getId();
+
         // 汇总天数
         List<String> dayList = new ArrayList<>();
 
@@ -259,10 +335,10 @@ public class UserDeviceDataController {
         List<Map<String, String>> resultMapList = new ArrayList();
 
         // 步数
-        List<UserDeviceData> resultList = userDeviceDataService.getUserDeviceDataHistory(currentUser.getId(), page, pageSize);
+        List<UserDeviceData> resultList = userDeviceDataService.getUserDeviceDataHistory(userId, page, pageSize);
 
         // Kral卡路里
-        List<UserDeviceData> kralList = userDeviceDataService.getUserDeviceKralHistory(currentUser.getId(), page, pageSize);
+        List<UserDeviceData> kralList = userDeviceDataService.getUserDeviceKralHistory(userId, page, pageSize);
 
 
         for (UserDeviceData result : resultList) {
@@ -276,11 +352,12 @@ public class UserDeviceDataController {
             resultMap.put("date", date);
             resultMap.put("time", time);
             resultMap.put("value", value);
+            resultMap.put("kral","0");
 
             // 添加卡路里
             for (UserDeviceData kral : kralList) {
 
-                String target = new SimpleDateFormat("yyyy-MM-dd").format(result.getCreatedOn());
+                String target = new SimpleDateFormat("yyyy-MM-dd").format(kral.getCreatedOn());
                 if (date.equals(target)) {
                     resultMap.put("kral", kral.getData());
                     continue;
@@ -333,6 +410,12 @@ public class UserDeviceDataController {
                                            @RequestParam(value = "page", required = true) Integer page,
                                            @RequestParam(value = "pageSize", required = true) Integer pageSize) {
 
+        // 处理分页
+        if (page <= 1) {
+            page = 1;
+        }
+
+
         // 汇总天数
         List<String> dayList = new ArrayList<>();
 
@@ -358,6 +441,10 @@ public class UserDeviceDataController {
     public Object getUserDeviceBloodHistory(@Value("#{request.getAttribute('currentUser')}") User currentUser,
                                             @RequestParam(value = "page", required = true) Integer page,
                                             @RequestParam(value = "pageSize", required = true) Integer pageSize) throws ParseException {
+
+        if (page <= 1) {
+            page = 1;
+        }
 
         long userId = currentUser.getId();
 
@@ -387,7 +474,7 @@ public class UserDeviceDataController {
                 String timeTarget = new SimpleDateFormat("HH:mm:ss").format(resultHigh.getCreatedOn());
                 String valueTarget = resultHigh.getData();
                 if (date.equals(dateTarget) && time.equals(timeTarget)) {
-                    result.setData(valueTarget + "/" + value + "mmHg");
+                    result.setData(valueTarget + "/" + value);
                     continue;
                 }
             }
@@ -435,6 +522,12 @@ public class UserDeviceDataController {
                                              @RequestParam(value = "page", required = true) Integer page,
                                              @RequestParam(value = "pageSize", required = true) Integer pageSize) {
 
+        if (page <= 1) {
+            page = 1;
+        }
+
+        long userId=currentUser.getId();
+
         // 汇总天数
         List<String> dayList = new ArrayList<>();
 
@@ -442,13 +535,20 @@ public class UserDeviceDataController {
         List<Map<String, String>> resultMapList = new ArrayList();
 
         // 体重
-        List<UserDeviceData> resultList = userDeviceDataService.getUserDeviceWeightHistory(currentUser.getId(), page, pageSize);
+        List<UserDeviceData> resultList = userDeviceDataService.getUserDeviceWeightHistory(userId, page, pageSize);
 
         List<Map<String, Object>> groupResultList = getMaps(dayList, resultMapList, resultList);
         return groupResultList;
     }
 
 
+    /***
+     * 请求结果按天分组
+     * @param dayList
+     * @param resultMapList
+     * @param resultList
+     * @return
+     */
     private List<Map<String, Object>> getMaps(List<String> dayList, List<Map<String, String>> resultMapList, List<UserDeviceData> resultList) {
         for (UserDeviceData result : resultList) {
 

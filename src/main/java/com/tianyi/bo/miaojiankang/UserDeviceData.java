@@ -98,4 +98,12 @@ public class UserDeviceData  extends BaseBo implements Serializable {
     public Date getCreatedOnTxt() {
         return super.getCreatedOn();
     }
+
+    public String deviceId;
+    public String getDeviceId() {
+        return deviceId;
+    }
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
 }

@@ -16,11 +16,30 @@ import java.util.List;
 @Repository
 public class UserDeviceDao extends BaseDao<UserDevice> {
 
-
     public List<UserDevice> getUserDevice(long userId){
 
         List<UserDevice> results = execute(session -> (List<UserDevice>) session
-                .createNativeQuery("SELECT * FROM user_device where user_id=:user_id and status in (0,1) and tid in (4,7) ORDER BY id DESC ", UserDevice.class)
+                .createNativeQuery("SELECT * FROM user_device where user_id=:user_id and status in (0,1) and tid in ('10096','10097') ORDER BY id DESC ", UserDevice.class)
+                .setParameter("user_id", userId)
+                .getResultList());
+        return results != null ? results : new ArrayList<UserDevice>();
+    }
+
+
+    public List<UserDevice> getUserDeviceByTypeId(long userId,String typeId){
+
+        List<UserDevice> results = execute(session -> (List<UserDevice>) session
+                .createNativeQuery("SELECT * FROM user_device where user_id=:user_id and status in (0,1) and tid=:typeId ORDER BY id DESC ", UserDevice.class)
+                .setParameter("user_id", userId)
+                .setParameter("typeId",typeId)
+                .getResultList());
+        return results != null ? results : new ArrayList<UserDevice>();
+    }
+
+    public List<UserDevice> getUserDeviceAll(long userId){
+
+        List<UserDevice> results = execute(session -> (List<UserDevice>) session
+                .createNativeQuery("SELECT * FROM user_device where user_id=:user_id and status in (0,1) ORDER BY id DESC ", UserDevice.class)
                 .setParameter("user_id", userId)
                 .getResultList());
         return results != null ? results : new ArrayList<UserDevice>();
