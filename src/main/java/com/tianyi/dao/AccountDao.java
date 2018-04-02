@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class AccountDao extends BaseDao<Account> {
 
-    public Account getAccountByUserId(final long userId) {
+    public Account getAccountByUserId(long userId) {
         return execute(session -> session
                 .createNativeQuery("SELECT * FROM account WHERE user_id=:userId ", Account.class)
                 .setParameter("userId", userId)
