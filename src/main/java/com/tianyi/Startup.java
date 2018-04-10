@@ -15,4 +15,15 @@ public class Startup {
     public static void main(String[] args) throws Exception {
         ApplicationContext context = SpringApplication.run(Startup.class, args);
     }
+    
+     @Bean(name = "sessionFactory")
+    public SessionFactory getSessionFactory(DataSource dataSource) {
+        LocalSessionFactoryBuilder sessionFactoryBuilder = new LocalSessionFactoryBuilder(
+            dataSource)
+            .scanPackages("com.tianyi.bo");
+        sessionFactoryBuilder.setPhysicalNamingStrategy(new SpringPhysicalNamingStrategy());
+
+        SessionFactory sessionFactory = sessionFactoryBuilder.buildSessionFactory();
+        return sessionFactory;
+    }
 }
