@@ -6,10 +6,12 @@ import com.tianyi.bo.enums.SexEnum;
 import com.tianyi.bo.enums.UserStatusEnum;
 import com.tianyi.bo.enums.UserType;
 import com.tianyi.dao.base.BaseDao;
-import com.tianyi.web.util.DateUtil;
+import com.tianyi.util.DateUtil;
+import com.tianyi.util.StringUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.criterion.CriteriaSpecification;
-import org.hibernate.query.Query;
+import org.hibernate.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigInteger;
@@ -22,7 +24,7 @@ import java.util.List;
  */
 @Repository
 public class UserDao extends BaseDao<User> {
-
+    public static final Logger logger = LoggerFactory.getLogger(UserDao.class);
     public User getUserByUsername(final String username) {
         return execute(session -> session
                 .createNativeQuery("SELECT * FROM user WHERE username=:username", User.class)
@@ -176,7 +178,7 @@ public class UserDao extends BaseDao<User> {
                         "inner join ( " +
                         "SELECT user_id,data_number FROM user_day_data " +
                         "where " +
-                        "left(created_on,10)=left(now(),10) " +
+                        "left(created_on,10)=left(date_sub(curdate(),interval 1 day),10) " +
                         "order by data_number desc " +
                         "limit 50 " +
                         ") d on d.user_id=u.id " +
@@ -218,5 +220,101 @@ public class UserDao extends BaseDao<User> {
 
     }
 
+    public List<User> getNonAdminUserWithArea(Integer page, Integer size,String startTime,String endTime,String keyword){
+        String sql;
+        sql="SELECT u.id,u.created_on,u.updated_on, u.updated_timestamp,u.address," +
+                "u.area_id,u.avatar,u.longin_ip,u.longin_num,u.mobile,u.nickname," +
+                "u.password_hash,u.real_name,u.signature,u.user_status,u.user_type," +
+                "u.username,u.user_language,u.country_code,area.area " +
+                "FROM user u LEFT JOIN area ON u.area_id=area.id WHERE 1=1";
+        if(startTime!=null&&!startTime.equals("")&&endTime!=null&&!endTime.equals("")){
+            sql=sql+" AND u.created_on>'"+startTime+"'"+" AND u.created_on<'"+endTime+"'";
+        }
+        if(!StringUtil.isStringEmpty(keyword)){
+            sql = sql+" AND mobile = '"+keyword+"' OR nickname LIKE '%"+keyword+"%'";
+        }
+        sql=sql+" ORDER BY created_on DESC ";
+        if(page!=null&&size!=null){
+            int offset=0;
+            if(page>0){
+                offset=(page-1)*size;
+            }
+            sql=sql+" LIMIT "+offset+","+size;
+        }
+        logger.debug("获取非管理员用户列表带着地区信息的sql为{}",sql);
+        Session session=getSessionFactory().openSession();
+        List<Object[]> dataresults=session.createNativeQuery(sql).list();
+        List<User> users=new ArrayList<>();
+        for (Object[] ele :
+                dataresults) {
+            User temp=new User();
+            temp.setId(Long.parseLong(ele[0]+""));
+            temp.setCreatedOn((Date) ele[1]);
+            temp.setUpdatedOn((Date) ele[2]);
+            //Date datetemp=(Date) ele[3];
+            temp.setUpdatedTimestamp(Long.parseLong(ele[3]+""));
+            temp.setAddress(ele[4]+"");
+            temp.setAreaId(Integer.parseInt(ele[5]+""));
+            temp.setAvatar(ele[6]+"");
+            temp.setLonginIp(ele[7]+"");
+            temp.setLonginNum(Long.parseLong(ele[8]+""));
+            temp.setMobile(ele[9]+"");
+            temp.setNickname(ele[10]+"");
+            temp.setPasswordHash(ele[11]+"");
+            temp.setRealName(ele[12]+"");
+            temp.setSignature(ele[13]+"");
+            int value=Integer.parseInt(ele[14]+"");
+            if(value==0){
+                temp.setUserStatus(UserStatusEnum.EFFECTIVE);
+            }else{
+                temp.setUserStatus(UserStatusEnum.INVALID);
+            }
+            int vvvvv=Integer.parseInt(ele[15]+"");
+            if(vvvvv==0){
+                temp.setUserType(UserType.USER);
+            }else{
+                temp.setUserType(UserType.ADMIN);
+            }
+            temp.setUsername(ele[16]+"");
+            temp.setUserLanguage(Integer.parseInt(ele[17]+""));
+            temp.setCountryCode(Integer.parseInt(ele[18]+""));
+            temp.setArea(ele[19]+"");
+            users.add(temp);
+        }
+        session.close();
+        return users;
+    }
 
+    public Integer getNonAdminTotalNum(String startTime,String endTime,String keyword){
+        String sql;
+        sql="SELECT COUNT(*) FROM user";
+        if(!StringUtil.isStringEmpty(startTime)&&!StringUtil.isStringEmpty(endTime)||!StringUtil.isStringEmpty(keyword)){
+            sql = sql+" WHERE 1=1 ";
+        }
+        if(startTime!=null&&!startTime.equals("")&&endTime!=null&&!endTime.equals("")){
+            sql=sql+" AND created_on>'"+startTime+"'"+" AND created_on<'"+endTime+"'";
+        }
+        if(!StringUtil.isStringEmpty(keyword)){
+            sql = sql+" AND mobile = '"+keyword+"' OR nickname LIKE '%"+keyword+"%'";
+        }
+        logger.debug("获取非管理员用户列表带着地区信息总数的sql为{}",sql);
+        Session session=getSessionFactory().openSession();
+        int result=Integer.parseInt(session.createNativeQuery(sql).uniqueResult()+"");
+        session.close();
+       return result;
+    }
+
+    public boolean isUserExist(long userId){
+        User user=execute(session -> session.createNativeQuery("SELECT * FROM user WHERE id=:userId",User.class)
+        .setParameter("userId",userId)
+        .uniqueResult());
+        return user!=null?true:false;
+    }
+
+    public List<User> getUserByType(int userType){
+        List<User> users=execute(session -> session.createNativeQuery("SELECT * FROM  user WHERE user_type=:userType",User.class)
+        .setParameter("userType",userType)
+        .getResultList());
+        return users;
+    }
 }

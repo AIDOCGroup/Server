@@ -7,6 +7,8 @@ import com.tianyi.dao.AccountDetailDao;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -40,6 +42,7 @@ public class AccountService {
 
     //coinNum 支持正/负
     //如果为消费类型需要变成负值
+    //发币专用因为发币详细日志中要把时间改为前一天
     public long coin(long userId,String channel,long coin) {
 
         if(coin == 0 ){
@@ -90,13 +93,55 @@ public class AccountService {
 
 
     private void addTblAccountDetail(long accountId, long rewardAmount, long blance, String channel) {
+        Calendar calendar=Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+        calendar.set(Calendar.HOUR_OF_DAY,23);
+        calendar.set(Calendar.MINUTE,59);
+        calendar.set(Calendar.SECOND,59);
+        calendar.set(Calendar.MILLISECOND,0);
+        AccountDetail accountDetail = new AccountDetail();
+        accountDetail.setCreatedOn(calendar.getTime());
+        accountDetail.setUpdatedOn(calendar.getTime());
+        accountDetail.setUpdatedTimestamp(calendar.getTimeInMillis());
+        accountDetail.setAccountId(accountId);
+        accountDetail.setRewardAmount(rewardAmount );
+        accountDetail.setBalance(blance);
+        accountDetail.setChannel(channel);
+       accountDetailDao.addAccountDetail(accountDetail);
+    }
+
+    //coinNum 支持正/负
+    //如果为消费类型需要变成负值
+    public long consumeCoin(long userId,String channel,long coin) {
+
+        if(coin == 0 ){
+            return 0;
+        }
+
+        //判定用户是否而存在数据
+        Account account = accountDao.getAccountByUserId(userId);
+
+        if (coin < 0 && account != null && (coin + account.getBalance()) < 0) {
+            return (coin + account.getBalance());
+        }
+
+        if (account == null) {
+            account = saveAccount(userId, coin );
+        } else {
+            account = editAccount(account, coin);
+        }
+        //创建详细数据日志
+        addConsumeCoinDetail(account.getId(), coin, account.getBalance(),channel);
+        return 1;
+    }
+
+    private void addConsumeCoinDetail(long accountId, long rewardAmount, long blance, String channel) {
         AccountDetail accountDetail = new AccountDetail();
         accountDetail.setAccountId(accountId);
         accountDetail.setRewardAmount(rewardAmount );
         accountDetail.setBalance(blance);
         accountDetail.setChannel(channel);
-       accountDetailDao.add(accountDetail);
+        accountDetailDao.add(accountDetail);
     }
-
-
 }
