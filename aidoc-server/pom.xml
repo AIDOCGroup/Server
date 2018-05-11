@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2018. Tianyi AIDOC Company.Inc. All Rights Reserved.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>tianyi-server</artifactId>
+    <groupId>com.tianyi.server</groupId>
+    <version>1.8.1</version>
+  </parent>
+
+  <modelVersion>4.0.0</modelVersion>
+  <name>aidoc-server</name>
+  <url>http://www.aidoc.me</url>
+  <packaging>jar</packaging>
+
+  <artifactId>aidoc-server</artifactId>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <springfox-version>2.8.0</springfox-version>
+  </properties>
+
+  <dependencies>
+
+    <!-- Add typical dependencies for a web application -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-logging</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-tomcat</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.tianyi.server</groupId>
+      <artifactId>aidoc-common</artifactId>
+    </dependency>
+<!--
+
+    <dependency>
+      <groupId>com.tianyi.server</groupId>
+      <artifactId>aidoc-shop</artifactId>
+    </dependency>
+-->
+
+    <dependency>
+      <groupId>com.tianyi.server</groupId>
+      <artifactId>aidoc-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.tianyi.server</groupId>
+      <artifactId>base-authority</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.tianyi.server</groupId>
+      <artifactId>base-framework</artifactId>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi</artifactId>
+      <version>3.17</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml -->
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <version>3.17</version>
+    </dependency>
+
+    <!--frontend -->
+
+    <!-- https://mvnrepository.com/artifact/org.webjars/AdminLTE
+    <dependency>
+      <groupId>org.webjars</groupId>
+      <artifactId>AdminLTE</artifactId>
+      <version>2.4.3</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.webjars</groupId>
+      <artifactId>bootstrap</artifactId>
+      <version>3.3.7-1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.webjars</groupId>
+      <artifactId>jquery</artifactId>
+      <version>3.2.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.webjars</groupId>
+      <artifactId>vue</artifactId>
+      <version>2.4.2</version>
+    </dependency>
+
+ -->
+    <!-- https://mvnrepository.com/artifact/org.webjars/webjars-locator-core -->
+    <dependency>
+      <groupId>org.webjars</groupId>
+      <artifactId>webjars-locator-core</artifactId>
+      <version>0.35</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!--     <plugin>
+               <artifactId>maven-assembly-plugin</artifactId>
+               <configuration>
+                   <descriptors>
+                       <descriptor>src/main/assembly.xml</descriptor>
+                   </descriptors>
+               </configuration>
+               <executions>
+                   <execution>
+                       <id>make-assembly</id>
+                       <phase>package</phase>
+                       <goals>
+                           <goal>single</goal>
+                       </goals>
+                   </execution>
+               </executions>
+           </plugin>-->
+
+      <!--<plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.1</version>
+      </plugin>-->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <executable>true</executable>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.3</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <encoding>UTF-8</encoding>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.20</version>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.0.1</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>

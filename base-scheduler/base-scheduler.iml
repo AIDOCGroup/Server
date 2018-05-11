@@ -12,6 +12,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="base-framework" />
+    <orderEntry type="module" module-name="base-framework" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-jetty:2.0.0.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-servlets:9.4.8.v20171121" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-continuation:9.4.8.v20171121" level="project" />
