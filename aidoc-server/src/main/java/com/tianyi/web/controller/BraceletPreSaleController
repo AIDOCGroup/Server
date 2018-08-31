@@ -1,0 +1,26 @@
+package com.tianyi.web.controller.youzan;
+
+import com.tianyi.bo.youzan.BraceletPreSale;
+import com.tianyi.service.youzan.BraceletPreSaleService;
+import com.tianyi.vo.youzan.PageParamVo;
+import com.tianyi.web.model.PagedListModel;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * server
+ *
+ * @author GaoZhilai
+ * @date 2018/6/24.
+ */
+@RestController
+@RequestMapping("/web/pre_sale")
+public class BraceletPreSaleController {
+
+}
