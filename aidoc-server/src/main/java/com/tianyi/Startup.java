@@ -29,6 +29,7 @@ import org.springframework.transaction.PlatformTransactionManager;
  */
 @SpringBootApplication(exclude = {HibernateJpaAutoConfiguration.class})
 @EnableConfigurationProperties(JpaProperties.class)
+@EnableTransactionManagement
 public class Startup {
 
     public static void main(String[] args) throws Exception {
