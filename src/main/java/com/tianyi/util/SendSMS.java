@@ -22,8 +22,8 @@ public class SendSMS {
     //产品域名,开发者无需替换
     private static final String domain = "dysmsapi.aliyuncs.com";
 
-    private static final String accessKeyId = "LTAIdHEXYDE6UM0W";
-    private static final String accessKeySecret = "mzLC7wZPLKlhjX45IB2vDldjZbZb6O";
+    private static final String accessKeyId = "xxxxxxxx";
+    private static final String accessKeySecret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
 
 
